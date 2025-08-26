@@ -14,9 +14,9 @@ public class ClienteService implements IClienteService{
     private ClienteCrud crud;
 
     @Override
-    public List<Cliente> listarCliente() {
-        List<Cliente> cliente = crud.findAll();
-        return cliente;
+    public List<Cliente> listarClientes() {
+        List<Cliente> clientes = crud.findAll();
+        return clientes;
     }
 
     @Override
@@ -34,6 +34,9 @@ public class ClienteService implements IClienteService{
     public void guardarCliente(Cliente cliente) {//agregar nuevo y editar
         crud.save(cliente);
     }
+
+    @Override
+    public void editarCliente(Cliente cliente) {crud.update(cliente);}
 
     @Override
     public void eliminarCliente(Cliente cliente) {

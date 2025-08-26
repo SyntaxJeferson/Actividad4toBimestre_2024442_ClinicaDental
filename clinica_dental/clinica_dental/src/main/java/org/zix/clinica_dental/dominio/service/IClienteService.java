@@ -1,6 +1,6 @@
 package org.zix.clinica_dental.dominio.service;
 
-import org.zix.clinica_dental.persitence.entity.Cliente;
+import org.zix.clinica_dental.persistence.entity.Cliente;
 
 import java.util.List;
 
@@ -11,5 +11,6 @@ public interface IClienteService {
     public List<Cliente> listarClientes();
     public Cliente buscarClientePorId(Integer codigo);
     public void guardarCliente(Cliente cliente);
+    public void editarCliente(Cliente cliente);
     public void eliminarCliente(Cliente cliente);
 }
