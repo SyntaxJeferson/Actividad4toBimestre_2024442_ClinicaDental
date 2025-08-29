@@ -3,6 +3,8 @@ package org.zix.clinica_dental;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.zix.clinica_dental.Cita;
+import org.zix.clinica_dental.CitaService;
 import org.zix.clinica_dental.Paciente;
 import org.zix.clinica_dental.ResourceNotFoundException;
 import org.zix.clinica_dental.PacienteService;
@@ -10,127 +12,144 @@ import org.zix.clinica_dental.PacienteService;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Scanner;
 
 @SpringBootApplication
 public class ClinicaDentalApplication implements CommandLineRunner {
+    private final PacienteService pacienteService;
+    private final OdontologoService odontologoService;
+    private final CitaService citaService;
 
-    private final PacienteService service;
-
-    public ClinicaDentalApplication(PacienteService service) {
-        this.service = service;
+    public ClinicaDentalApplication(PacienteService pacienteService,
+                                    OdontologoService odontologoService,
+                                    CitaService citaService) {
+        this.pacienteService = pacienteService;
+        this.odontologoService = odontologoService;
+        this.citaService = citaService;
     }
 
-	public static void main(String[] args) {
-		SpringApplication.run(ClinicaDentalApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ClinicaDentalApplication.class, args);
+    }
 
     @Override
     public void run(String... args) {
         Scanner sc = new Scanner(System.in);
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        int opcion;
 
-        System.out.println("\n=== Clínica Dental – Gestión de Pacientes ===\n");
+        do {
+            System.out.println("\n=== Clínica Dental ===");
+            System.out.println("1. Registrar Paciente");
+            System.out.println("2. Listar Pacientes");
+            System.out.println("3. Registrar Odontólogo");
+            System.out.println("4. Listar Odontólogos");
+            System.out.println("5. Agendar Cita");
+            System.out.println("6. Listar Citas");
+            System.out.println("0. Salir");
+            System.out.print("Opción: ");
+            opcion = sc.nextInt();
+            sc.nextLine(); // limpiar buffer
 
-        boolean seguir = true;
-        while (seguir) {
-            try {
-                System.out.println("Seleccione una opción:");
-                System.out.println("1) Registrar nuevo paciente");
-                System.out.println("2) Listar pacientes");
-                System.out.println("3) Buscar por identificación");
-                System.out.println("4) Actualizar teléfono");
-                System.out.println("5) Eliminar paciente");
-                System.out.println("0) Salir");
-                System.out.print("Opción: ");
-                String opcion = sc.nextLine().trim();
-
-                switch (opcion) {
-                    case "1" -> registrar(sc, fmt);
-                    case "2" -> listar();
-                    case "3" -> buscar(sc);
-                    case "4" -> actualizar(sc);
-                    case "5" -> eliminar(sc);
-                    case "0" -> {
-                        seguir = false;
-                        System.out.println("Saliendo… ¡Gracias!");
-                    }
-                    default -> System.out.println("Opción inválida\n");
-                }
-            } catch (IllegalArgumentException | ResourceNotFoundException ex) {
-                System.out.println("\n[ERROR] " + ex.getMessage() + "\n");
-            } catch (Exception ex) {
-                System.out.println("\n[ERROR INESPERADO] " + ex.getMessage() + "\n");
+            switch (opcion) {
+                case 1 -> registrarPaciente(sc);
+                case 2 -> listarPacientes();
+                case 3 -> registrarOdontologo(sc);
+                case 4 -> listarOdontologos();
+                case 5 -> agendarCita(sc);
+                case 6 -> listarCitas();
+                case 0 -> System.out.println("Saliendo...");
+                default -> System.out.println("Opción inválida.");
             }
-        }
+        } while (opcion != 0);
     }
 
-    private void registrar(Scanner sc, DateTimeFormatter fmt) {
-        System.out.println("\n— Registro de nuevo paciente —");
+    private void registrarPaciente(Scanner sc) {
         System.out.print("Nombre completo: ");
-        String nombre = sc.nextLine().trim();
-
-        LocalDate fechaNacimiento = null;
-        while (fechaNacimiento == null) {
-            System.out.print("Fecha de nacimiento (yyyy-MM-dd): ");
-            String fechaStr = sc.nextLine().trim();
-            try {
-                fechaNacimiento = LocalDate.parse(fechaStr, fmt);
-            } catch (DateTimeParseException e) {
-                System.out.println("Formato inválido. Intenta nuevamente.");
-            }
-        }
-
-        System.out.print("Número de identificación (DPI/NIT): ");
-        String identificacion = sc.nextLine().trim();
-
+        String nombre = sc.nextLine();
+        System.out.print("DNI: ");
+        String dni = sc.nextLine();
         System.out.print("Teléfono: ");
-        String telefono = sc.nextLine().trim();
+        String telefono = sc.nextLine();
+        System.out.print("Correo: ");
+        String correo = sc.nextLine();
 
-        Paciente p = new Paciente(nombre, fechaNacimiento, identificacion, telefono);
-        Paciente guardado = service.crear(p);
-        System.out.println("\nPaciente registrado con ID: " + guardado.getId() + "\n");
+        Paciente p = new Paciente();
+        p.setNombreCompleto(nombre);
+        p.setIdentificacion(dni);
+        p.setTelefono(telefono);
+
+        pacienteService.crear(p);
+        System.out.println("✅ Paciente registrado.");
     }
 
-    private void listar() {
-        System.out.println("\n— Listado de pacientes —");
-        List<Paciente> pacientes = service.listar();
-        if (pacientes.isEmpty()) {
-            System.out.println("No hay pacientes registrados.\n");
-            return;
-        }
-        pacientes.forEach(p -> System.out.printf(
-                "ID:%d | %s | Nac.: %s | ID:%s | Tel:%s%n",
-                p.getId(), p.getNombreCompleto(),
-                p.getFechaNacimiento(), p.getIdentificacion(), p.getTelefono()
-        ));
-        System.out.println();
+    private void listarPacientes() {
+        System.out.println("=== Lista de Pacientes ===");
+        pacienteService.listar()
+                .forEach(p -> System.out.println(p.getId() + " - " + p.getNombreCompleto()));
     }
 
-    private void buscar(Scanner sc) {
-        System.out.print("\nIdentificación a buscar: ");
-        String identificacion = sc.nextLine().trim();
-        Paciente p = service.buscarPorIdentificacion(identificacion);
-        System.out.printf("Encontrado -> ID:%d | %s | Nac.: %s | ID:%s | Tel:%s%n%n",
-                p.getId(), p.getNombreCompleto(),
-                p.getFechaNacimiento(), p.getIdentificacion(), p.getTelefono());
+    private void registrarOdontologo(Scanner sc) {
+        System.out.print("Nombre completo: ");
+        String nombre = sc.nextLine();
+        System.out.print("Especialidad: ");
+        String especialidad = sc.nextLine();
+        System.out.print("Teléfono: ");
+        String telefono = sc.nextLine();
+        System.out.print("Correo: ");
+        String correo = sc.nextLine();
+
+        Odontologo o = new Odontologo();
+        o.setNombreCompleto(nombre);
+        o.setEspecialidad(especialidad);
+        o.setTelefono(telefono);
+        o.setCorreo(correo);
+
+        odontologoService.guardarOdontologo(o);
+        System.out.println("✅ Odontólogo registrado.");
     }
 
-    private void actualizar(Scanner sc) {
-        System.out.print("\nIdentificación del paciente: ");
-        String identificacion = sc.nextLine().trim();
-        System.out.print("Nuevo teléfono: ");
-        String telefono = sc.nextLine().trim();
-        Paciente actualizado = service.actualizarContacto(identificacion, telefono);
-        System.out.printf("Actualizado -> %s (Tel: %s)%n%n",
-                actualizado.getNombreCompleto(), actualizado.getTelefono());
+    private void listarOdontologos() {
+        System.out.println("=== Lista de Odontólogos ===");
+        odontologoService.listarOdontologos()
+                .forEach(o -> System.out.println(o.getId() + " - " + o.getNombreCompleto()));
     }
 
-    private void eliminar(Scanner sc) {
-        System.out.print("\nIdentificación del paciente a eliminar: ");
-        String identificacion = sc.nextLine().trim();
-        service.eliminar(identificacion);
-        System.out.println("Registro eliminado.\n");
+    private void agendarCita(Scanner sc) {
+        System.out.println("=== Agendar Cita ===");
+        listarPacientes();
+        System.out.print("ID Paciente: ");
+        String identificacion = sc.nextLine();
+        sc.nextLine();
+
+        listarOdontologos();
+        System.out.print("ID Odontólogo: ");
+        Long idOdontologo = sc.nextLong();
+        sc.nextLine();
+
+        System.out.print("Motivo: ");
+        String motivo = sc.nextLine();
+
+        Cita c = new Cita();
+        c.setPaciente(pacienteService.buscarPorIdentificacion(identificacion));
+        c.setOdontologo(odontologoService.buscarPorId(idOdontologo).orElseThrow());
+        c.setMotivo(motivo);
+        c.setFechaHora(LocalDateTime.now());
+
+        citaService.agendarCita(c);
+        System.out.println("✅ Cita agendada.");
+    }
+
+    private void listarCitas() {
+        System.out.println("=== Lista de Citas ===");
+        citaService.listarCitas()
+                .forEach(c -> System.out.println(
+                        "Cita " + c.getId() +
+                                " | Paciente: " + c.getPaciente().getNombreCompleto() +
+                                " | Odontólogo: " + c.getOdontologo().getNombreCompleto() +
+                                " | Motivo: " + c.getMotivo() +
+                                " | Fecha: " + c.getFechaHora()
+                ));
     }
 }

@@ -3,6 +3,7 @@ package org.zix.clinica_dental;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
+import java.util.List;
 
 
 @Entity
@@ -10,6 +11,8 @@ import java.time.LocalDate;
         @Index(name = "idx_paciente_identificacion", columnList = "identificacion", unique = true)
 })
 public class Paciente {
+    @OneToMany(mappedBy = "paciente", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Cita> citas;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
